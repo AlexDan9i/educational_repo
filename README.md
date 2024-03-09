@@ -51,6 +51,4 @@ You can initialize this repository with code from a Subversion, Mercurial, or TF
 
 Добавил локальный конфликт
 
-
-
 Разрешаем конфликт (текст в браузере)

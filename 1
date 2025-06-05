@@ -1,0 +1,49 @@
+# Настройки — названия групп (указать точные имена)
+$targetGroups = @(
+    "Группа1",
+    "Группа2",
+    "Группа3"
+)
+
+# Получаем имя компьютера
+$computerName = $env:COMPUTERNAME + "$"  # учётная запись компьютера в AD заканчивается на $
+
+# Проверяем, в домене ли компьютер
+if ((Get-WmiObject Win32_ComputerSystem).PartOfDomain -eq $true) {
+    Write-Host "Компьютер $env:COMPUTERNAME в домене. Проверяем группы..." -ForegroundColor Green
+
+    # Получаем объект компьютера из AD
+    try {
+        $computer = Get-ADComputer -Identity $env:COMPUTERNAME -ErrorAction Stop
+    } catch {
+        Write-Error "Не удалось найти компьютер $env:COMPUTERNAME в AD"
+        exit 1
+    }
+
+    # Перебираем группы и добавляем, если не состоит
+    foreach ($groupName in $targetGroups) {
+        try {
+            $group = Get-ADGroup -Identity $groupName -ErrorAction Stop
+        } catch {
+            Write-Warning "Группа '$groupName' не найдена"
+            continue
+        }
+
+        $isMember = Get-ADGroupMember -Identity $groupName -Recursive | Where-Object { $_.DistinguishedName -eq $computer.DistinguishedName }
+
+        if (-not $isMember) {
+            Write-Host "Добавляем $env:COMPUTERNAME в группу '$groupName'..." -ForegroundColor Yellow
+            try {
+                Add-ADGroupMember -Identity $groupName -Members $computer -ErrorAction Stop
+                Write-Host "Успешно добавлен в '$groupName'" -ForegroundColor Green
+            } catch {
+                Write-Error "Ошибка добавления в '$groupName': $_"
+            }
+        } else {
+            Write-Host "Компьютер уже состоит в группе '$groupName'" -ForegroundColor Gray
+        }
+    }
+
+} else {
+    Write-Warning "Компьютер $env:COMPUTERNAME не в домене. Операция отменена."
+}

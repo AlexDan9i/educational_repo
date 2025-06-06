@@ -79,3 +79,13 @@ function Watch-OU {
 
 # Запуск
 Watch-OU
+
+По расписанию (Task Scheduler) — запускать каждые 5 минут.
+Фоновый процесс с циклом:
+powershell
+Копировать
+Редактировать
+while ($true) {
+    Watch-OU
+    Start-Sleep -Seconds 300
+}

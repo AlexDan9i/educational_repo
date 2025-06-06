@@ -89,3 +89,36 @@ while ($true) {
     Watch-OU
     Start-Sleep -Seconds 300
 }
+
+
+function Process-NewComputer {
+    param (
+        [string]$ComputerDN
+    )
+    try {
+        $computer = Get-ADComputer -Identity $ComputerDN
+        Write-Log "Найден новый компьютер: $($computer.Name)"
+
+        $memberOfGroups = Get-ADPrincipalGroupMembership -Identity $computer | Select-Object -ExpandProperty Name
+
+        foreach ($group in $GroupsToCheck) {
+            if ($memberOfGroups -notcontains $group) {
+                try {
+                    Add-ADGroupMember -Identity $group -Members $computer
+                    $msg = "Компьютер $($computer.Name) добавлен в группу $group."
+                    Write-Log $msg
+                    Send-Notification -Subject "Добавлен в группу: $($computer.Name)" -Body $msg
+                } catch {
+                    $errMsg = "Ошибка при добавлении $($computer.Name) в $group: $_"
+                    Write-Log $errMsg "ERROR"
+                    Send-Notification -Subject "Ошибка добавления в группу" -Body $errMsg
+                }
+            } else {
+                Write-Log "Компьютер $($computer.Name) уже состоит в группе $group."
+            }
+        }
+    } catch {
+        Write-Log "Ошибка при обработке компьютера $ComputerDN: $_" "ERROR"
+        Send-Notification -Subject "Ошибка обработки нового компьютера" -Body "Ошибка при обработке: $_"
+    }
+}

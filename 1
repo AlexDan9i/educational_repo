@@ -12,10 +12,28 @@ function Write-Log {
         [string]$Message,
         [string]$Level = "INFO"
     )
+
+    # Получаем имя текущего скрипта без расширения
+    $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Path)
+    if (-not $scriptName) {
+        $scriptName = "ManualRun"  # если скрипт выполняется из консоли
+    }
+
+    # Папка для логов
+    $logFolder = "$PSScriptRoot\Logs"
+    if (-not (Test-Path $logFolder)) {
+        New-Item -Path $logFolder -ItemType Directory -Force | Out-Null
+    }
+
+    # Имя файла: ScriptName_YYYY-MM-DD.log
+    $logFile = Join-Path $logFolder "$scriptName_$(Get-Date -Format 'yyyy-MM-dd').log"
+
+    # Формат записи
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logMessage = "$timestamp [$Level] $Message"
-    Add-Content -Path $LogFile -Value $logMessage
-    Write-Output $logMessage
+    $logEntry = "[$timestamp][$Level] $Message"
+
+    # Запись в файл
+    Add-Content -Path $logFile -Value $logEntry
 }
 
 # Отправка email
